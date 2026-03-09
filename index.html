@@ -10,7 +10,6 @@
 </head>
 <body>
 
-  <!-- ── HEADER ── -->
   <header class="header">
     <div class="logo">
       <span class="logo-icon">▶</span>
@@ -20,10 +19,9 @@
     <p class="tagline">Generate stunning YouTube thumbnails with AI — free &amp; open source</p>
   </header>
 
-  <!-- ── MAIN CONTENT ── -->
   <main class="container">
 
-    <!-- STEP 1: Input -->
+    <!-- STEP 1 -->
     <section class="card" id="step-input">
       <div class="step-label">01 / TOPIC</div>
       <h2 class="card-title">What's your video about?</h2>
@@ -37,59 +35,50 @@
       <div class="char-counter"><span id="charCount">0</span> / 120</div>
     </section>
 
-    <!-- STEP 2: Style -->
+    <!-- STEP 2 -->
     <section class="card" id="step-style">
       <div class="step-label">02 / STYLE</div>
       <h2 class="card-title">Pick a thumbnail style</h2>
       <div class="style-grid">
-        <button class="style-btn active" data-style="bold" title="Bold & Impactful">
-          <span class="style-emoji">🔥</span>
-          <span class="style-name">Bold</span>
+        <button class="style-btn active" data-style="bold">
+          <span class="style-emoji">🔥</span><span class="style-name">Bold</span>
         </button>
-        <button class="style-btn" data-style="gaming" title="Gaming Hype">
-          <span class="style-emoji">🎮</span>
-          <span class="style-name">Gaming</span>
+        <button class="style-btn" data-style="gaming">
+          <span class="style-emoji">🎮</span><span class="style-name">Gaming</span>
         </button>
-        <button class="style-btn" data-style="minimal" title="Clean Minimal">
-          <span class="style-emoji">✦</span>
-          <span class="style-name">Minimal</span>
+        <button class="style-btn" data-style="minimal">
+          <span class="style-emoji">✦</span><span class="style-name">Minimal</span>
         </button>
-        <button class="style-btn" data-style="vlog" title="Personal Vlog">
-          <span class="style-emoji">🎬</span>
-          <span class="style-name">Vlog</span>
+        <button class="style-btn" data-style="vlog">
+          <span class="style-emoji">🎬</span><span class="style-name">Vlog</span>
         </button>
-        <button class="style-btn" data-style="tutorial" title="Educational Tutorial">
-          <span class="style-emoji">📚</span>
-          <span class="style-name">Tutorial</span>
+        <button class="style-btn" data-style="tutorial">
+          <span class="style-emoji">📚</span><span class="style-name">Tutorial</span>
         </button>
-        <button class="style-btn" data-style="viral" title="Viral Clickbait">
-          <span class="style-emoji">⚡</span>
-          <span class="style-name">Viral</span>
+        <button class="style-btn" data-style="viral">
+          <span class="style-emoji">⚡</span><span class="style-name">Viral</span>
         </button>
       </div>
     </section>
 
-    <!-- GENERATE BUTTON -->
+    <!-- GENERATE -->
     <button class="generate-btn" id="generateBtn" onclick="generateThumbnail()">
-      <span id="btnText">✦ Generate Thumbnail Concept</span>
-      <span id="btnLoader" class="hidden">Generating…</span>
+      <span id="btnText">✦ Generate Thumbnail</span>
+      <span id="btnLoader" class="hidden">Generating with AI…</span>
     </button>
 
     <!-- STEP 3: Preview -->
     <section class="card hidden" id="step-preview">
       <div class="step-label">03 / PREVIEW</div>
-      <h2 class="card-title">Your thumbnail concept</h2>
+      <h2 class="card-title">Your AI thumbnail</h2>
 
-      <!-- Canvas Thumbnail Preview -->
-      <div class="preview-wrapper">
-        <canvas id="thumbnailCanvas" width="1280" height="720"></canvas>
+      <!-- Image shown here -->
+      <div class="preview-wrapper" id="previewWrapper">
+        <!-- Filled dynamically by script.js -->
       </div>
 
-      <!-- AI Concept Description -->
+      <!-- Concept info -->
       <div class="concept-box" id="conceptBox"></div>
-
-      <!-- Color Palette -->
-      <div class="palette-row" id="paletteRow"></div>
 
       <!-- Actions -->
       <div class="action-row">
@@ -100,9 +89,8 @@
 
   </main>
 
-  <!-- ── FOOTER ── -->
   <footer class="footer">
-    <p>Built with ❤️ by <strong>mehulbest</strong> · Open Source · MIT License</p>
+    <p>Built with ❤️ by <strong>mehulbest</strong> · Powered by <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a> · MIT License</p>
     <p class="footer-links">
       <a href="https://github.com/mehulbest/ai-youtube-thumbnail-generator" target="_blank">GitHub</a>
     </p>
