@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Puter.js — free unlimited AI, no API key needed -->
+  <script src="https://js.puter.com/v2/"></script>
 </head>
 <body>
 
@@ -16,12 +18,31 @@
       <span class="logo-text">ThumbAI</span>
       <span class="logo-badge">by mehulbest</span>
     </div>
-    <p class="tagline">Generate stunning YouTube thumbnails with AI — free &amp; open source</p>
+    <p class="tagline">Generate stunning YouTube thumbnails with AI — free &amp; unlimited</p>
   </header>
 
   <main class="container">
 
-    <!-- STEP 1 -->
+    <!-- ── STEP 0: PUTER AUTH ── -->
+    <section class="card" id="step-auth">
+      <div class="step-label">00 / CONNECT</div>
+      <h2 class="card-title">Connect free AI</h2>
+      <p class="auth-desc">
+        This tool uses <strong>Nano Banana (Gemini 3.1)</strong> via Puter.js for free, unlimited
+        AI image generation — no API key needed. Just sign in once with a free Puter account.
+      </p>
+      <div id="authStatus" class="auth-status disconnected">
+        <span class="auth-dot"></span>
+        <span id="authStatusText">Not connected</span>
+      </div>
+      <!-- This button MUST be clicked by the user — browsers block auto popups -->
+      <button class="connect-btn" id="connectBtn" onclick="connectPuter()">
+        🔗 Connect with Puter (free)
+      </button>
+      <p class="auth-note">Free account · No credit card · Takes 30 seconds</p>
+    </section>
+
+    <!-- ── STEP 1: TITLE ── -->
     <section class="card" id="step-input">
       <div class="step-label">01 / TOPIC</div>
       <h2 class="card-title">What's your video about?</h2>
@@ -35,7 +56,7 @@
       <div class="char-counter"><span id="charCount">0</span> / 120</div>
     </section>
 
-    <!-- STEP 2 -->
+    <!-- ── STEP 2: STYLE ── -->
     <section class="card" id="step-style">
       <div class="step-label">02 / STYLE</div>
       <h2 class="card-title">Pick a thumbnail style</h2>
@@ -61,26 +82,18 @@
       </div>
     </section>
 
-    <!-- GENERATE -->
+    <!-- ── GENERATE ── -->
     <button class="generate-btn" id="generateBtn" onclick="generateThumbnail()">
-      <span id="btnText">✦ Generate Thumbnail</span>
-      <span id="btnLoader" class="hidden">Generating with AI…</span>
+      <span id="btnText">✦ Generate with Nano Banana</span>
+      <span id="btnLoader" class="hidden">AI is generating…</span>
     </button>
 
-    <!-- STEP 3: Preview -->
+    <!-- ── STEP 3: PREVIEW ── -->
     <section class="card hidden" id="step-preview">
       <div class="step-label">03 / PREVIEW</div>
       <h2 class="card-title">Your AI thumbnail</h2>
-
-      <!-- Image shown here -->
-      <div class="preview-wrapper" id="previewWrapper">
-        <!-- Filled dynamically by script.js -->
-      </div>
-
-      <!-- Concept info -->
+      <div class="preview-wrapper" id="previewWrapper"></div>
       <div class="concept-box" id="conceptBox"></div>
-
-      <!-- Actions -->
       <div class="action-row">
         <button class="action-btn secondary" onclick="generateThumbnail()">↺ Regenerate</button>
         <button class="action-btn primary" onclick="downloadThumbnail()">⬇ Download PNG</button>
@@ -90,10 +103,8 @@
   </main>
 
   <footer class="footer">
-    <p>Built with ❤️ by <strong>mehulbest</strong> · Powered by <a href="https://pollinations.ai" target="_blank">Pollinations.ai</a> · MIT License</p>
-    <p class="footer-links">
-      <a href="https://github.com/mehulbest/ai-youtube-thumbnail-generator" target="_blank">GitHub</a>
-    </p>
+    <p>Built with ❤️ by <strong>mehulbest</strong> · Powered by <a href="https://puter.com" target="_blank">Puter.js</a> + Nano Banana (Gemini 3.1) · MIT License</p>
+    <p class="footer-links"><a href="https://github.com/mehulbest/ai-youtube-thumbnail-generator" target="_blank">GitHub</a></p>
   </footer>
 
   <script src="script.js"></script>
