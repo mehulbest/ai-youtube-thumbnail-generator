@@ -224,3 +224,37 @@ body {
   .action-row { flex-direction:column; }
   .card-title { font-size:22px; }
 }
+
+/* ── CONCEPT EXPAND ── */
+.concept-prompt-full {
+  font-size: 13px;
+  color: #aaa;
+  line-height: 1.7;
+  margin-bottom: 14px;
+  background: #0a0a0a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.concept-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.expand-btn {
+  background: transparent;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 7px 12px;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+.expand-btn:hover { color: var(--text); border-color: #555; }
