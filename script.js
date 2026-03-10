@@ -180,7 +180,7 @@ A YouTuber is making a video titled: "${title}"
 Thumbnail style preference: ${styleKw}
 ${photoNote}
 
-Generate exactly 5 different thumbnail concepts for this video. Each concept must be unique.
+Generate exactly 5 different thumbnail concepts in detail for this video. Each concept must be unique.
 
 Respond ONLY with a valid JSON array. No markdown, no explanation, just the JSON.
 Format:
