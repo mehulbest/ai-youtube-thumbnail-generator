@@ -3,7 +3,7 @@
  * script.js — Full flow:
  *   1. Enter video title
  *   2. Upload your photo (optional)
- *   3. Gemini generates 5 thumbnail concepts (text)
+ *   3. GPT-4o generates 5 thumbnail concepts (text)
  *   4. Pick one concept
  *   5. Gemini generates the actual image (with your face if uploaded)
  *   6. Download 1280×720 PNG
@@ -173,7 +173,7 @@ async function generateConcepts() {
       ? `The YouTuber has uploaded their own photo to appear in the thumbnail. Their photo description: "${document.getElementById('photoDesc').value.trim() || 'reaction face'}".`
       : '';
 
-    // Ask Gemini to generate 5 concept prompts as JSON
+    // Ask GPT-4o to generate 5 concept prompts as JSON
     const metaPrompt = `You are an expert YouTube thumbnail designer. 
     
 A YouTuber is making a video titled: "${title}"
@@ -195,7 +195,7 @@ Format:
       model: 'gpt-4o',
     });
 
-    // Parse the JSON from Gemini's response
+    // Parse the JSON from GPT-4o's response
     const raw   = typeof response === 'string' ? response : response?.message?.content || response?.content || '';
     const clean = raw.replace(/```json|```/g, '').trim();
     generatedConcepts = JSON.parse(clean);
@@ -284,7 +284,7 @@ async function generateThumbnail() {
     let imgElement;
 
     if (photoBase64) {
-      // Send photo + prompt together to Gemini vision
+      // Send photo + prompt together to Gemini image generation
       imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
         model: 'gemini-3.1-flash-image-preview',
         image: {
@@ -361,8 +361,8 @@ function showLoadingUI() {
   document.getElementById('previewWrapper').innerHTML = `
     <div class="loading-placeholder">
       <div class="spinner"></div>
-      <p class="loading-text">FLUX is painting your thumbnail…</p>
-      <p class="loading-sub">FLUX Schnell · Free via Puter.js · ~10–20 sec</p>
+      <p class="loading-text">Gemini is painting your thumbnail…</p>
+      <p class="loading-sub">Gemini 3.1 Flash Image Preview via Puter.js · ~10–20 sec</p>
       <div class="progress-bar"><div class="progress-fill"></div></div>
     </div>`;
 }
@@ -384,7 +384,7 @@ function showError(msg) {
 
 function renderConceptBox(concept) {
   document.getElementById('conceptBox').textContent =
-    `✦ Concept: ${concept.title}\n📐 Output: 1280×720px (16:9) · FLUX.1-schnell-Free via Puter.js`;
+    `✦ Concept: ${concept.title}\n📐 Output: 1280×720px (16:9) · Gemini 3.1 Flash Image Preview via Puter.js`;
 }
 
 function setConceptBtnLoading(on) {

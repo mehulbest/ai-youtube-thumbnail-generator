@@ -27,7 +27,7 @@
       <div class="step-label">00 / CONNECT</div>
       <h2 class="card-title">Connect free AI</h2>
       <p class="auth-desc">
-        Powered by <strong>Nano Banana (Gemini 3.1)</strong> via Puter.js —
+        Powered by <strong>GPT-4o + Gemini 3.1</strong> via Puter.js —
         free, unlimited, no API key needed. Sign in once with a free Puter account.
       </p>
       <div id="authStatus" class="auth-status disconnected">
@@ -58,7 +58,7 @@
     <section class="card" id="step-photo">
       <div class="step-label">02 / YOUR PHOTO</div>
       <h2 class="card-title">Upload your face / assets</h2>
-      <p class="auth-desc">Optional but recommended — Gemini will place you in the thumbnail like a real YouTuber.</p>
+      <p class="auth-desc">Optional but recommended — AI will place you in the thumbnail like a real YouTuber.</p>
 
       <div class="upload-zone" id="uploadZone" onclick="document.getElementById('photoInput').click()">
         <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)" />
@@ -104,14 +104,14 @@
     <!-- ── GENERATE CONCEPTS BUTTON ── -->
     <button class="generate-btn" id="conceptBtn" onclick="generateConcepts()">
       <span id="conceptBtnText">✦ Generate 5 Thumbnail Concepts</span>
-      <span id="conceptBtnLoader" class="hidden">Gemini is thinking…</span>
+      <span id="conceptBtnLoader" class="hidden">GPT-4o is writing concepts…</span>
     </button>
 
     <!-- ── STEP 4: PICK A CONCEPT ── -->
     <section class="card hidden" id="step-concepts">
       <div class="step-label">04 / PICK CONCEPT</div>
       <h2 class="card-title">Choose a thumbnail concept</h2>
-      <p class="auth-desc">Gemini generated these concepts based on your title. Pick the one you like — then generate the image.</p>
+      <p class="auth-desc">GPT-4o generated these concepts from your title. Pick one, then Gemini will generate the image.</p>
       <div id="conceptsList" class="concepts-list"></div>
     </section>
 
@@ -137,7 +137,7 @@
   </main>
 
   <footer class="footer">
-    <p>Built with ❤️ by <strong>mehulbest</strong> · Powered by <a href="https://puter.com" target="_blank">Puter.js</a> + Nano Banana (Gemini 3.1) · MIT License</p>
+    <p>Built with ❤️ by <strong>mehulbest</strong> · Powered by <a href="https://puter.com" target="_blank">Puter.js</a> + GPT-4o + Gemini 3.1 · MIT License</p>
     <p class="footer-links"><a href="https://github.com/mehulbest/ai-youtube-thumbnail-generator" target="_blank">GitHub</a></p>
   </footer>
 
