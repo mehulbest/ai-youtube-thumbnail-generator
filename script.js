@@ -192,7 +192,7 @@ Format:
 ]`;
 
     const response = await puter.ai.chat(metaPrompt, {
-      model: 'claude-3-5-haiku',
+      model: 'gpt-4o',
     });
 
     // Parse the JSON from Gemini's response
@@ -286,7 +286,7 @@ async function generateThumbnail() {
     if (photoBase64) {
       // Send photo + prompt together to Gemini vision
       imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
-        model: 'flux-schnell-free',
+        model: 'gemini-3.1-flash-image-preview',
         image: {
           data: photoBase64,
           mimeType: photoMime || 'image/jpeg',
@@ -295,7 +295,7 @@ async function generateThumbnail() {
     } else {
       // Text-only generation
       imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
-        model: 'flux-schnell-free',
+        model: 'gemini-3.1-flash-image-preview',
       });
     }
 
