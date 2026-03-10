@@ -38,10 +38,7 @@ window.addEventListener('load', () => {
 
 function checkAuthState() {
   try {
-    if (puter.auth.isSignedIn()) {
-      clearInterval(authPollTimer);
-      setConnected(true);
-    }
+    setConnected(puter.auth.isSignedIn());
   } catch (e) {}
 }
 
@@ -57,18 +54,42 @@ async function connectPuter() {
   }
 }
 
+function logoutPuter() {
+  try {
+    puter.auth.signOut();
+    setConnected(false);
+    showToast('Signed out of Puter');
+  } catch (err) {
+    console.error('Logout error:', err);
+    showToast('⚠️ Failed to log out. Please try again.');
+  }
+}
+
 function setConnected(connected) {
   const status = document.getElementById('authStatus');
   const text   = document.getElementById('authStatusText');
-  const btn    = document.getElementById('connectBtn');
+  const connectBtn = document.getElementById('connectBtn');
+  const logoutBtn  = document.getElementById('logoutBtn');
   if (connected) {
     status.className  = 'auth-status connected';
     text.textContent  = '✓ Connected — ready to generate!';
-    btn.textContent   = '✓ Connected';
-    btn.disabled      = true;
-    btn.style.opacity = '0.5';
-    btn.style.cursor  = 'default';
+    connectBtn.textContent = '✓ Connected';
+    connectBtn.disabled = true;
+    connectBtn.style.opacity = '0.5';
+    connectBtn.style.cursor = 'default';
+    connectBtn.classList.remove('hidden');
+    logoutBtn.classList.remove('hidden');
+    return;
   }
+
+  status.className  = 'auth-status disconnected';
+  text.textContent  = 'Not connected';
+  connectBtn.textContent = '🔗 Connect with Puter (free)';
+  connectBtn.disabled = false;
+  connectBtn.style.opacity = '1';
+  connectBtn.style.cursor = 'pointer';
+  connectBtn.classList.remove('hidden');
+  logoutBtn.classList.add('hidden');
 }
 
 // ─── INIT ─────────────────────────────────────────────
