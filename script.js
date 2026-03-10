@@ -191,7 +191,7 @@ async function generateConcepts() {
   try {
     const styleKw     = STYLE_KEYWORDS[currentStyle];
     const photoNote   = photoBase64
-      ? `The YouTuber has uploaded their own photo to appear in the thumbnail. Their photo description: "${document.getElementById('photoDesc').value.trim() || 'reaction face'}".`
+      ? `The YouTuber has uploaded their own photo to appear in the thumbnail. Their photo description: "${document.getElementById('photoDesc').value.trim() || 'reaction face'}". This uploaded photo is the required identity reference. Every concept must use the same person from the uploaded photo and must not invent a different face, person, or character.`
       : '';
 
     // Ask GPT-4o to generate 5 concept prompts as JSON
@@ -287,6 +287,19 @@ function selectConcept(idx) {
   document.getElementById('generateBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function buildImagePrompt(concept) {
+  if (!photoBase64) return concept.prompt;
+
+  const photoDesc = document.getElementById('photoDesc').value.trim() || 'reaction face';
+  return `Use the uploaded input photo as the required identity reference for the person in this thumbnail.
+Keep the same person, same face, same apparent age, same skin tone, and same core facial features from the uploaded photo.
+Do not invent a new person. Do not swap gender. Do not change ethnicity. Do not replace the face with a lookalike.
+You may stylize lighting, composition, pose, crop, and thumbnail treatment, but the person must remain clearly the same person from the uploaded image.
+Use this person as: ${photoDesc}.
+
+${concept.prompt}`;
+}
+
 // ─── STEP 2: GENERATE IMAGE ──────────────────────────
 async function generateThumbnail() {
   if (!selectedConcept) { showToast('⚠️ Please select a concept first'); return; }
@@ -303,19 +316,20 @@ async function generateThumbnail() {
 
   try {
     let imgElement;
+    const imagePrompt = buildImagePrompt(selectedConcept);
 
     if (photoBase64) {
-      // Send photo + prompt together to Gemini image generation
-      imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
+      // Gemini image-to-image uses provider-specific input_image fields.
+      imgElement = await puter.ai.txt2img(imagePrompt, {
+        provider: 'gemini',
         model: 'gemini-3.1-flash-image-preview',
-        image: {
-          data: photoBase64,
-          mimeType: photoMime || 'image/jpeg',
-        },
+        input_image: photoBase64,
+        input_image_mime_type: photoMime || 'image/jpeg',
       });
     } else {
       // Text-only generation
-      imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
+      imgElement = await puter.ai.txt2img(imagePrompt, {
+        provider: 'gemini',
         model: 'gemini-3.1-flash-image-preview',
       });
     }
