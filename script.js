@@ -1,46 +1,36 @@
 /**
  * AI YouTube Thumbnail Generator by mehulbest
- * script.js — Puter.js + Nano Banana (Gemini 3.1 Flash Image)
- * FIX: Force 16:9 (1280x720) output via canvas crop after generation
+ * script.js — Full flow:
+ *   1. Enter video title
+ *   2. Upload your photo (optional)
+ *   3. Gemini generates 5 thumbnail concepts (text)
+ *   4. Pick one concept
+ *   5. Gemini generates the actual image (with your face if uploaded)
+ *   6. Download 1280×720 PNG
  */
 
-let currentStyle  = 'bold';
-let isGenerating  = false;
-let currentImgEl  = null;
-let authPollTimer = null;
+// ─── STATE ────────────────────────────────────────────
+let currentStyle     = 'bold';
+let isGenerating     = false;
+let photoBase64      = null;   // uploaded photo as base64
+let photoMime        = null;
+let photoSkipped     = false;
+let generatedConcepts = [];    // array of {title, prompt} objects
+let selectedConcept  = null;   // the one user picked
+let currentCanvas    = null;   // final 1280×720 canvas
+let authPollTimer    = null;
 
-// ─── STYLE PROMPTS ───────────────────────────────────
-// Important: explicitly ask for 16:9 widescreen layout in every prompt
-const STYLE_PROMPTS = {
-  bold: (t) =>
-    `Create a YouTube thumbnail image in WIDESCREEN 16:9 landscape format for a video titled "${t}". Bold dramatic style: massive bold white text "${t}" with thick red stroke outline centered horizontally. Background is a dark red to black radial gradient with explosive orange fire bursting outward and cinematic god-rays. High contrast. Photorealistic quality. The entire image must be wider than it is tall, landscape orientation only.`,
-
-  gaming: (t) =>
-    `Create a YouTube thumbnail image in WIDESCREEN 16:9 landscape format for a gaming video titled "${t}". Epic neon style: glowing bold text "${t}" with cyan neon outline and purple glow. Ultra-dark background with electric cyan and purple neon streaks, particle sparks, hexagonal HUD elements, dramatic lens flare, volumetric fog. Cinematic video game poster. Landscape orientation only.`,
-
-  minimal: (t) =>
-    `Create a YouTube thumbnail image in WIDESCREEN 16:9 landscape format for a video titled "${t}". Ultra-clean minimalist style: large bold black serif text "${t}" on a pure white background. Single thin red geometric accent line. Generous whitespace. Premium editorial magazine aesthetic. Landscape orientation only.`,
-
-  vlog: (t) =>
-    `Create a YouTube thumbnail image in WIDESCREEN 16:9 landscape format for a vlog titled "${t}". Warm lifestyle style: bold warm-white text "${t}" with soft drop shadow. Warm golden hour bokeh background in amber and peach tones. Cozy inviting lifestyle influencer feel. Landscape orientation only.`,
-
-  tutorial: (t) =>
-    `Create a YouTube thumbnail image in WIDESCREEN 16:9 landscape format for a tutorial titled "${t}". Educational style: clean bold white text "${t}". Dark navy to teal gradient background. Bright green accent badge or checkmark element. Subtle dot grid overlay. Trustworthy professional look. Landscape orientation only.`,
-
-  viral: (t) =>
-    `Create a YouTube thumbnail image in WIDESCREEN 16:9 landscape format for a viral video titled "${t}". High-energy clickbait style: massive bold yellow text "${t}" with thick black stroke. Shocking magenta to electric orange gradient background. Bold red arrows pointing at the text. Extreme high contrast, urgency and shock value. Landscape orientation only.`,
+// ─── STYLE KEYWORDS (used to flavor concept generation) ───
+const STYLE_KEYWORDS = {
+  bold:     'bold dramatic high contrast explosive energy',
+  gaming:   'epic neon gaming dark cinematic',
+  minimal:  'clean minimal elegant whitespace',
+  vlog:     'warm personal lifestyle golden hour',
+  tutorial: 'professional educational trustworthy',
+  viral:    'shocking clickbait urgent viral energy',
 };
 
-const STYLE_TIPS = {
-  bold:     '🔥 High contrast + fire = the timeless viral formula.',
-  gaming:   '🎮 Neon on black is the #1 gaming thumbnail formula.',
-  minimal:  '✦ Whitespace signals premium quality to viewers.',
-  vlog:     '🎬 Warm golden tones build trust and emotional connection.',
-  tutorial: '📚 Navy + green instantly signals "professional teacher".',
-  viral:    '⚡ Yellow + black + arrows = most clickable combo.',
-};
-
-// ─── ON LOAD ──────────────────────────────────────────
+// ─── AUTH ─────────────────────────────────────────────
 window.addEventListener('load', () => {
   checkAuthState();
   authPollTimer = setInterval(checkAuthState, 1500);
@@ -52,10 +42,9 @@ function checkAuthState() {
       clearInterval(authPollTimer);
       setConnected(true);
     }
-  } catch (e) { /* puter not ready yet */ }
+  } catch (e) {}
 }
 
-// ─── CONNECT ─────────────────────────────────────────
 async function connectPuter() {
   const btn = document.getElementById('connectBtn');
   btn.textContent = '⏳ Opening sign-in…';
@@ -64,8 +53,7 @@ async function connectPuter() {
     await puter.auth.signIn();
     setConnected(true);
   } catch (err) {
-    console.warn('signIn() stalled (Google OAuth known issue) — polling will catch it:', err);
-    btn.textContent = '⏳ Waiting for sign-in… (you can close the popup)';
+    btn.textContent = '⏳ Waiting… close popup if stuck';
   }
 }
 
@@ -96,105 +84,262 @@ document.querySelectorAll('.style-btn').forEach(btn => {
   });
 });
 
-document.getElementById('videoTitle').addEventListener('keydown', e => {
-  if (e.key === 'Enter') generateThumbnail();
+// ─── PHOTO UPLOAD ────────────────────────────────────
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('⚠️ Photo must be under 5MB'); return; }
+
+  photoMime = file.type;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    photoBase64 = dataUrl.split(',')[1]; // strip data:image/...;base64,
+
+    // Show preview
+    const preview = document.getElementById('photoPreview');
+    preview.src = dataUrl;
+    preview.classList.remove('hidden');
+    document.getElementById('uploadPlaceholder').classList.add('hidden');
+
+    // Show description field
+    document.getElementById('photoDescRow').classList.remove('hidden');
+
+    // Update skip button
+    document.getElementById('skipPhotoBtn').textContent = '✕ Remove photo';
+    photoSkipped = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function toggleSkipPhoto() {
+  if (photoBase64) {
+    // Remove photo
+    photoBase64 = null;
+    photoMime = null;
+    document.getElementById('photoPreview').classList.add('hidden');
+    document.getElementById('uploadPlaceholder').classList.remove('hidden');
+    document.getElementById('photoDescRow').classList.add('hidden');
+    document.getElementById('photoInput').value = '';
+    document.getElementById('skipPhotoBtn').textContent = 'Skip — generate without my photo';
+    photoSkipped = false;
+  } else {
+    photoSkipped = !photoSkipped;
+    document.getElementById('skipPhotoBtn').textContent = photoSkipped
+      ? '✓ Skipping photo'
+      : 'Skip — generate without my photo';
+    document.getElementById('skipPhotoBtn').style.opacity = photoSkipped ? '0.5' : '1';
+  }
+}
+
+// Drag & drop on upload zone
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('photoInput').files = dt.files;
+    handlePhotoUpload({ target: { files: [file] } });
+  }
 });
 
-// ─── GENERATE ────────────────────────────────────────
-async function generateThumbnail() {
+// ─── STEP 1: GENERATE CONCEPTS ───────────────────────
+async function generateConcepts() {
   const title = document.getElementById('videoTitle').value.trim();
-  if (!title) { flashInput(); return; }
+  if (!title) { flashInput('videoTitle'); return; }
 
   if (!puter.auth.isSignedIn()) {
-    showToast('⚠️ Please connect your Puter account first (Step 00 above)');
+    showToast('⚠️ Please connect your Puter account first (Step 00)');
     return;
   }
 
-  if (isGenerating) return;
-  isGenerating = true;
-  currentImgEl = null;
+  setConceptBtnLoading(true);
+  generatedConcepts = [];
+  selectedConcept   = null;
 
-  setLoadingState(true);
+  // Hide previous results
+  document.getElementById('step-concepts').classList.add('hidden');
+  document.getElementById('generateBtn').classList.add('hidden');
+  document.getElementById('step-preview').classList.add('hidden');
+
+  try {
+    const styleKw     = STYLE_KEYWORDS[currentStyle];
+    const photoNote   = photoBase64
+      ? `The YouTuber has uploaded their own photo to appear in the thumbnail. Their photo description: "${document.getElementById('photoDesc').value.trim() || 'reaction face'}".`
+      : '';
+
+    // Ask Gemini to generate 5 concept prompts as JSON
+    const metaPrompt = `You are an expert YouTube thumbnail designer. 
+    
+A YouTuber is making a video titled: "${title}"
+Thumbnail style preference: ${styleKw}
+${photoNote}
+
+Generate exactly 5 different thumbnail concepts for this video. Each concept must be unique.
+
+Respond ONLY with a valid JSON array. No markdown, no explanation, just the JSON.
+Format:
+[
+  {
+    "title": "Short catchy concept name (max 5 words)",
+    "prompt": "Detailed image generation prompt (100-150 words). ${photoBase64 ? 'Include instruction to place the YouTuber reaction face in the thumbnail based on their description.' : ''} Always end with: Widescreen 16:9 landscape format, YouTube thumbnail style, high quality, no watermarks."
+  }
+]`;
+
+    const response = await puter.ai.chat(metaPrompt, {
+      model: 'gpt-4o',
+    });
+
+    // Parse the JSON from Gemini's response
+    const raw   = typeof response === 'string' ? response : response?.message?.content || response?.content || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    generatedConcepts = JSON.parse(clean);
+
+    renderConcepts(generatedConcepts);
+    document.getElementById('step-concepts').classList.remove('hidden');
+    document.getElementById('step-concepts').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    console.error('Concept generation error:', err);
+    showToast('⚠️ Failed to generate concepts. Please try again.');
+  } finally {
+    setConceptBtnLoading(false);
+  }
+}
+
+// ─── RENDER CONCEPT CARDS ────────────────────────────
+function renderConcepts(concepts) {
+  const list = document.getElementById('conceptsList');
+  list.innerHTML = '';
+
+  concepts.forEach((concept, i) => {
+    const card = document.createElement('div');
+    card.className   = 'concept-card';
+    card.dataset.idx = i;
+    card.innerHTML   = `
+      <div class="concept-card-header">
+        <span class="concept-num">Concept ${i + 1}</span>
+        <span class="concept-title">${concept.title}</span>
+      </div>
+      <p class="concept-prompt-preview">${concept.prompt.slice(0, 140)}…</p>
+      <button class="concept-select-btn" onclick="selectConcept(${i})">
+        Use This Concept →
+      </button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ─── SELECT CONCEPT ──────────────────────────────────
+function selectConcept(idx) {
+  selectedConcept = generatedConcepts[idx];
+
+  // Highlight selected card
+  document.querySelectorAll('.concept-card').forEach((c, i) => {
+    c.classList.toggle('selected', i === idx);
+  });
+
+  // Show generate button
+  document.getElementById('generateBtn').classList.remove('hidden');
+  document.getElementById('generateBtn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ─── STEP 2: GENERATE IMAGE ──────────────────────────
+async function generateThumbnail() {
+  if (!selectedConcept) { showToast('⚠️ Please select a concept first'); return; }
+  if (!puter.auth.isSignedIn()) { showToast('⚠️ Not connected'); return; }
+  if (isGenerating) return;
+
+  isGenerating  = true;
+  currentCanvas = null;
+
+  setImageBtnLoading(true);
   document.getElementById('step-preview').classList.remove('hidden');
   showLoadingUI();
   document.getElementById('step-preview').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   try {
-    const prompt = STYLE_PROMPTS[currentStyle](title);
+    let imgElement;
 
-    // Generate image via Puter + Nano Banana
-    const imgElement = await puter.ai.txt2img(prompt, {
-      model: 'gemini-3.1-flash-image-preview',
-    });
+    if (photoBase64) {
+      // Send photo + prompt together to Gemini vision
+      imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
+        model: 'gemini-3.1-flash-image-preview',
+        image: {
+          data: photoBase64,
+          mimeType: photoMime || 'image/jpeg',
+        },
+      });
+    } else {
+      // Text-only generation
+      imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
+        model: 'gemini-3.1-flash-image-preview',
+      });
+    }
 
-    // ── FORCE 16:9 (1280×720) via canvas crop/letterbox ──
-    const finalCanvas = await forceSixteenByNine(imgElement);
-    currentImgEl = finalCanvas;
+    // Force 1280×720 16:9
+    const canvas = await forceSixteenByNine(imgElement);
+    currentCanvas = canvas;
 
-    showGeneratedCanvas(finalCanvas);
-    renderConceptBox(title, currentStyle);
+    showGeneratedCanvas(canvas);
+    renderConceptBox(selectedConcept);
 
   } catch (err) {
-    console.error('Generation error:', err);
+    console.error('Image generation error:', err);
     showError(`Generation failed: ${err.message || 'Please try again.'}`);
   } finally {
-    setLoadingState(false);
+    setImageBtnLoading(false);
     isGenerating = false;
   }
 }
 
-// ─── FORCE 16:9 CANVAS ───────────────────────────────
-// Takes any <img> element and returns a 1280×720 canvas
-// If the image is already wider: center-crop to 16:9
-// If the image is already 16:9 or close: just resize
+// ─── FORCE 16:9 (1280×720) ───────────────────────────
 async function forceSixteenByNine(imgEl) {
-  const TARGET_W = 1280;
-  const TARGET_H = 720;
+  const W = 1280, H = 720;
 
-  // Wait for image to fully load
   await new Promise(resolve => {
     if (imgEl.complete && imgEl.naturalWidth > 0) { resolve(); return; }
-    imgEl.onload = resolve;
+    imgEl.onload  = resolve;
     imgEl.onerror = resolve;
   });
 
-  const srcW = imgEl.naturalWidth  || imgEl.width  || 1024;
-  const srcH = imgEl.naturalHeight || imgEl.height || 1024;
-
+  const srcW = imgEl.naturalWidth  || 1024;
+  const srcH = imgEl.naturalHeight || 1024;
   const canvas = document.createElement('canvas');
-  canvas.width  = TARGET_W;
-  canvas.height = TARGET_H;
+  canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Fill black background first
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, TARGET_W, TARGET_H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
 
-  const srcRatio    = srcW / srcH;
-  const targetRatio = TARGET_W / TARGET_H; // 1.777...
+  const srcRatio = srcW / srcH;
+  const tgtRatio = W / H;
+  let dx, dy, dw, dh;
 
-  let drawX, drawY, drawW, drawH;
-
-  if (srcRatio >= targetRatio) {
-    // Image is wider or same ratio → fit height, crop sides
-    drawH = TARGET_H;
-    drawW = drawH * srcRatio;
-    drawX = (TARGET_W - drawW) / 2;
-    drawY = 0;
+  if (srcRatio >= tgtRatio) {
+    dh = H; dw = dh * srcRatio;
+    dx = (W - dw) / 2; dy = 0;
   } else {
-    // Image is taller → fit width, crop top/bottom
-    drawW = TARGET_W;
-    drawH = drawW / srcRatio;
-    drawX = 0;
-    drawY = (TARGET_H - drawH) / 2;
+    dw = W; dh = dw / srcRatio;
+    dx = 0; dy = (H - dh) / 2;
   }
 
-  ctx.drawImage(imgEl, drawX, drawY, drawW, drawH);
-
+  ctx.drawImage(imgEl, dx, dy, dw, dh);
   return canvas;
 }
 
-// ─── UI ───────────────────────────────────────────────
+// ─── BACK TO CONCEPTS ────────────────────────────────
+function goBackToConcepts() {
+  document.getElementById('step-preview').classList.add('hidden');
+  document.getElementById('step-concepts').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── UI HELPERS ──────────────────────────────────────
 function showLoadingUI() {
   document.getElementById('previewWrapper').innerHTML = `
     <div class="loading-placeholder">
@@ -207,7 +352,6 @@ function showLoadingUI() {
 
 function showGeneratedCanvas(canvas) {
   canvas.style.cssText = 'width:100%;height:auto;display:block;border-radius:8px;';
-  canvas.title = 'Your 1280×720 YouTube Thumbnail';
   const wrapper = document.getElementById('previewWrapper');
   wrapper.innerHTML = '';
   wrapper.appendChild(canvas);
@@ -221,9 +365,21 @@ function showError(msg) {
     </div>`;
 }
 
-function renderConceptBox(title, style) {
+function renderConceptBox(concept) {
   document.getElementById('conceptBox').textContent =
-    `📹 "${title}"\n🎨 Style: ${style.charAt(0).toUpperCase() + style.slice(1)}\n${STYLE_TIPS[style]}\n📐 Output: 1280×720px (16:9) · Model: Nano Banana 2 via Puter.js`;
+    `✦ Concept: ${concept.title}\n📐 Output: 1280×720px (16:9) · Nano Banana 2 via Puter.js`;
+}
+
+function setConceptBtnLoading(on) {
+  document.getElementById('conceptBtn').disabled = on;
+  document.getElementById('conceptBtnText').classList.toggle('hidden', on);
+  document.getElementById('conceptBtnLoader').classList.toggle('hidden', !on);
+}
+
+function setImageBtnLoading(on) {
+  document.getElementById('generateBtn').disabled = on;
+  document.getElementById('btnText').classList.toggle('hidden', on);
+  document.getElementById('btnLoader').classList.toggle('hidden', !on);
 }
 
 function showToast(msg) {
@@ -242,9 +398,17 @@ function showToast(msg) {
   t._timer = setTimeout(() => { t.textContent = ''; }, 3500);
 }
 
-// ─── DOWNLOAD ─────────────────────────────────────────
+function flashInput(id) {
+  const el = document.getElementById(id);
+  el.style.borderColor = '#ff2d2d';
+  el.style.boxShadow   = '0 0 0 3px rgba(255,45,45,0.25)';
+  el.focus();
+  setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1200);
+}
+
+// ─── DOWNLOAD ────────────────────────────────────────
 function downloadThumbnail() {
-  if (!currentImgEl) return;
+  if (!currentCanvas) return;
   const btn = document.querySelector('.action-btn.primary');
   const orig = btn.textContent;
   btn.textContent = '⏳ Saving…';
@@ -252,8 +416,7 @@ function downloadThumbnail() {
   const name = (document.getElementById('videoTitle').value.trim() || 'thumbnail')
     .slice(0, 40).replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
-  // currentImgEl is a canvas — toBlob works perfectly, no CORS issues
-  currentImgEl.toBlob(blob => {
+  currentCanvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.download = `${name}_thumbnail.png`;
@@ -262,19 +425,4 @@ function downloadThumbnail() {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
     btn.textContent = orig;
   }, 'image/png');
-}
-
-// ─── HELPERS ─────────────────────────────────────────
-function setLoadingState(on) {
-  document.getElementById('generateBtn').disabled = on;
-  document.getElementById('btnText').classList.toggle('hidden', on);
-  document.getElementById('btnLoader').classList.toggle('hidden', !on);
-}
-
-function flashInput() {
-  const el = document.getElementById('videoTitle');
-  el.style.borderColor = '#ff2d2d';
-  el.style.boxShadow   = '0 0 0 3px rgba(255,45,45,0.25)';
-  el.focus();
-  setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1200);
 }
