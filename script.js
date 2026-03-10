@@ -180,7 +180,7 @@ A YouTuber is making a video titled: "${title}"
 Thumbnail style preference: ${styleKw}
 ${photoNote}
 
-Generate exactly 5 different thumbnail concepts in detail for this video. Each concept must be unique.
+Generate exactly 5 different thumbnail concepts for this video. Each concept must be unique.
 
 Respond ONLY with a valid JSON array. No markdown, no explanation, just the JSON.
 Format:
@@ -192,7 +192,7 @@ Format:
 ]`;
 
     const response = await puter.ai.chat(metaPrompt, {
-      model: 'gpt-4o',
+      model: 'claude-3-5-haiku',
     });
 
     // Parse the JSON from Gemini's response
@@ -226,13 +226,30 @@ function renderConcepts(concepts) {
         <span class="concept-num">Concept ${i + 1}</span>
         <span class="concept-title">${concept.title}</span>
       </div>
-      <p class="concept-prompt-preview">${concept.prompt.slice(0, 140)}…</p>
-      <button class="concept-select-btn" onclick="selectConcept(${i})">
-        Use This Concept →
-      </button>
+      <p class="concept-prompt-preview" id="prompt-preview-${i}">${concept.prompt.slice(0, 140)}…</p>
+      <p class="concept-prompt-full hidden" id="prompt-full-${i}">${concept.prompt}</p>
+      <div class="concept-card-actions">
+        <button class="expand-btn" onclick="togglePrompt(${i})">
+          <span id="expand-label-${i}">▼ Read full prompt</span>
+        </button>
+        <button class="concept-select-btn" onclick="selectConcept(${i})">
+          Use This Concept →
+        </button>
+      </div>
     `;
     list.appendChild(card);
   });
+}
+
+// ─── TOGGLE PROMPT EXPAND ────────────────────────────
+function togglePrompt(i) {
+  const preview = document.getElementById('prompt-preview-' + i);
+  const full    = document.getElementById('prompt-full-' + i);
+  const label   = document.getElementById('expand-label-' + i);
+  const isHidden = full.classList.contains('hidden');
+  full.classList.toggle('hidden', !isHidden);
+  preview.classList.toggle('hidden', isHidden);
+  label.textContent = isHidden ? '▲ Hide prompt' : '▼ Read full prompt';
 }
 
 // ─── SELECT CONCEPT ──────────────────────────────────
@@ -269,7 +286,7 @@ async function generateThumbnail() {
     if (photoBase64) {
       // Send photo + prompt together to Gemini vision
       imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
-        model: 'gemini-3.1-flash-image-preview',
+        model: 'flux-schnell-free',
         image: {
           data: photoBase64,
           mimeType: photoMime || 'image/jpeg',
@@ -278,7 +295,7 @@ async function generateThumbnail() {
     } else {
       // Text-only generation
       imgElement = await puter.ai.txt2img(selectedConcept.prompt, {
-        model: 'gemini-3.1-flash-image-preview',
+        model: 'flux-schnell-free',
       });
     }
 
@@ -344,8 +361,8 @@ function showLoadingUI() {
   document.getElementById('previewWrapper').innerHTML = `
     <div class="loading-placeholder">
       <div class="spinner"></div>
-      <p class="loading-text">Nano Banana is painting your thumbnail…</p>
-      <p class="loading-sub">Gemini 3.1 Flash Image · Free via Puter.js · ~15–30 sec</p>
+      <p class="loading-text">FLUX is painting your thumbnail…</p>
+      <p class="loading-sub">FLUX Schnell · Free via Puter.js · ~10–20 sec</p>
       <div class="progress-bar"><div class="progress-fill"></div></div>
     </div>`;
 }
@@ -367,7 +384,7 @@ function showError(msg) {
 
 function renderConceptBox(concept) {
   document.getElementById('conceptBox').textContent =
-    `✦ Concept: ${concept.title}\n📐 Output: 1280×720px (16:9) · Nano Banana 2 via Puter.js`;
+    `✦ Concept: ${concept.title}\n📐 Output: 1280×720px (16:9) · FLUX.1-schnell-Free via Puter.js`;
 }
 
 function setConceptBtnLoading(on) {
